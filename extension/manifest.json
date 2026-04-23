@@ -1,0 +1,16 @@
+{
+  "manifest_version": 3,
+  "name": "CookieJar",
+  "version": "0.1.0",
+  "description": "Local cookie broker for Copilot agents. Forwards browser cookies to a localhost API when authorised.",
+  "permissions": ["cookies", "nativeMessaging", "storage", "alarms"],
+  "host_permissions": ["<all_urls>"],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "action": {
+    "default_title": "CookieJar",
+    "default_popup": "popup.html"
+  }
+}

@@ -1,0 +1,71 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>CookieJar</title>
+    <style>
+      body {
+        font-family: -apple-system, "Segoe UI", sans-serif;
+        margin: 0;
+        padding: 12px 14px;
+        width: 280px;
+        background: #1f1f24;
+        color: #eee;
+      }
+      h1 {
+        font-size: 13px;
+        margin: 0 0 8px;
+        color: #f3c969;
+      }
+      .row {
+        font-size: 12px;
+        margin: 4px 0;
+        display: flex;
+        justify-content: space-between;
+      }
+      .ok {
+        color: #6dd49a;
+      }
+      .bad {
+        color: #ff6b6b;
+      }
+      button {
+        margin-top: 8px;
+        background: #3b3b44;
+        color: #eee;
+        border: 0;
+        padding: 6px 10px;
+        font-size: 12px;
+        border-radius: 4px;
+        cursor: pointer;
+        width: 100%;
+      }
+      button:hover {
+        background: #4d4d58;
+      }
+      code {
+        font-size: 11px;
+        color: #aaa;
+        word-break: break-all;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>CookieJar</h1>
+    <div class="row">
+      <span>Endpoint</span>
+      <code>127.0.0.1:47891</code>
+    </div>
+    <div class="row">
+      <span>Native host</span>
+      <span id="hostStatus">checking...</span>
+    </div>
+    <div class="row">
+      <span>Token</span>
+      <code id="tokenLabel">on disk</code>
+    </div>
+    <button id="reconnectBtn">Reconnect host</button>
+    <button id="copyCurlBtn">Copy curl example</button>
+    <script src="popup.js"></script>
+  </body>
+</html>
