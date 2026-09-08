@@ -73,6 +73,7 @@ curl -sH "Authorization: Bearer $TOKEN" \
 | GET    | `/health`                                                       | no   |
 | GET    | `/cookies?domain=<d>[&name=<n>][&includeSubdomains=true\|false]`| yes  |
 | GET    | `/domains`                                                      | yes  |
+| GET    | `/request-auth?domain=<d>`                                      | yes  |
 
 `/cookies` returns both a ready-to-use `Cookie` header string and structured
 cookie objects:
@@ -93,6 +94,14 @@ cookie objects:
 
 Status codes: `401` bad/missing token, `404` no cookies for that domain,
 `503` extension not connected (open Edge), `504` extension timed out.
+
+`/request-auth` returns the coherent Cookie, User-Agent, `x-bc`, user-ID, and
+request-signing headers from the latest matching browser request. Only requests
+carrying the required authentication headers are retained. Open or refresh an
+authenticated page before calling it; unlike separately fetched cookies, these
+values belong to one signed request and avoid mixing rotated sessions or browser
+fingerprints. Signing headers are diagnostic and request-specific; callers
+should not replay them for another URL.
 
 ## Security model
 
@@ -151,6 +160,8 @@ CookieJar\
 - **Multiple browser profiles** -- the cookies returned are from the profile
   that loaded the extension. Install separately in each profile if you need
   both.
+- **`/request-auth` returns `404 no_request_auth`** -- open or refresh an
+  authenticated page so the extension observes a signed API request.
 
 ## Out of scope (for now)
 

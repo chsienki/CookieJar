@@ -6,6 +6,7 @@ const RECONNECT_DELAY_MS = 2000;
 const KEEPALIVE_ALARM = "cookiejar-keepalive";
 
 let port = null;
+const latestRequestAuth = new Map();
 
 function log(...args) {
   console.log("[CookieJar]", ...args);
@@ -40,13 +41,53 @@ async function handleMessage(msg) {
     } else if (op === "listDomains") {
       const domains = await listDomains();
       reply({ id, ok: true, domains });
+    } else if (op === "getRequestAuth") {
+      const captured = latestRequestAuth.get(normalize(msg.domain));
+      if (!captured) {
+        reply({ id, ok: false, error: "no_request_auth" });
+      } else {
+        reply({ id, ok: true, ...captured });
+      }
     } else {
       reply({ id, ok: false, error: "unknown_op" });
     }
+
   } catch (e) {
     reply({ id, ok: false, error: String(e?.message || e) });
   }
 }
+
+chrome.webRequest.onBeforeSendHeaders.addListener(
+  (details) => {
+    const headers = Object.fromEntries(
+      (details.requestHeaders || []).map((header) => [
+        header.name.toLowerCase(),
+        header.value || "",
+      ]),
+    );
+    if (!headers["x-bc"] || !headers["user-agent"] || !headers.cookie) {
+      return;
+    }
+
+    const hostname = normalize(new URL(details.url).hostname);
+    latestRequestAuth.set(hostname, {
+      url: details.url,
+      capturedAt: new Date().toISOString(),
+      headers: {
+        "app-token": headers["app-token"] || "",
+        cookie: headers.cookie,
+        sign: headers.sign || "",
+        time: headers.time || "",
+        "user-agent": headers["user-agent"],
+        "x-bc": headers["x-bc"],
+        "x-of-rev": headers["x-of-rev"] || "",
+        "user-id": headers["user-id"] || "",
+      },
+    });
+  },
+  { urls: ["<all_urls>"] },
+  ["requestHeaders", "extraHeaders"],
+);
 
 function reply(msg) {
   if (!port) return;

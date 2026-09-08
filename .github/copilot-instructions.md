@@ -74,6 +74,8 @@ Frames are 4-byte little-endian length prefix + UTF-8 JSON. Messages:
 | ext -> host    | (response)   | `id`, `ok:true`, `cookies:[...]`                |
 | host -> ext    | `listDomains`| `id`                                            |
 | ext -> host    | (response)   | `id`, `ok:true`, `domains:[...]`                |
+| host -> ext    | `getRequestAuth` | `id`, `domain`                              |
+| ext -> host    | (response)   | `id`, `ok:true`, `url`, `capturedAt`, `headers` |
 | ext -> host    | (error)      | `id`, `ok:false`, `error:"..."`                 |
 
 If you add a new op:

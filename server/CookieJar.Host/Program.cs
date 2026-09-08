@@ -150,6 +150,57 @@ app.MapGet("/domains", async (CookieBroker br) =>
     });
 });
 
+app.MapGet("/request-auth", async (string domain, CookieBroker br) =>
+{
+    if (string.IsNullOrWhiteSpace(domain))
+    {
+        return Results.BadRequest(new { error = "domain_required" });
+    }
+
+    JsonObject? response;
+    try
+    {
+        response = await br.RequestAsync(
+            new JsonObject
+            {
+                ["op"] = "getRequestAuth",
+                ["domain"] = domain,
+            },
+            TimeSpan.FromSeconds(5),
+            CancellationToken.None);
+    }
+    catch (TimeoutException)
+    {
+        return Results.Json(new { error = "extension_timeout" }, statusCode: 504);
+    }
+    catch (InvalidOperationException ex)
+    {
+        return Results.Json(
+            new { error = "extension_disconnected", detail = ex.Message },
+            statusCode: 503);
+    }
+
+    if (response is null)
+    {
+        return Results.Json(new { error = "extension_disconnected" }, statusCode: 503);
+    }
+
+    if (response["ok"]?.GetValue<bool>() != true)
+    {
+        var error = response["error"]?.GetValue<string>() ?? "extension_error";
+        var status = error == "no_request_auth" ? 404 : 502;
+        return Results.Json(new { error }, statusCode: status);
+    }
+
+    return Results.Json(new
+    {
+        domain,
+        url = response["url"],
+        capturedAt = response["capturedAt"],
+        headers = response["headers"],
+    });
+});
+
 await app.RunAsync(lifetime.Token);
 return 0;
 
@@ -161,5 +212,6 @@ static bool CryptographicEquals(ReadOnlySpan<char> a, string b)
     {
         diff |= a[i] ^ b[i];
     }
+
     return diff == 0;
 }
