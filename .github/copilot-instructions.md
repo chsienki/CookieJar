@@ -13,13 +13,16 @@ CookieJar is a local cookie broker for AI agents. It pairs:
   forwards each authorised HTTP request to the extension.
 
 Agents fetch cookies via `GET /cookies?domain=...` with a bearer token. The
-machine-wide `cookies` skill (in `~/.copilot/skills/cookies/`) documents the
-public contract for callers.
+checked-in `cookies` skill (`.github/skills/cookies/SKILL.md`) documents the
+public contract for callers and can be copied to
+`~/.copilot/skills/cookies/` for machine-wide use.
 
 ## Repo layout
 
 ```
 CookieJar/
++-- .github/
+|   +-- skills/cookies/SKILL.md # Canonical public Copilot CLI skill
 +-- extension/                  # Edge MV3 extension
 |   +-- manifest.json           # MV3 manifest. No icons (intentional v1).
 |   +-- background.js           # Service worker: native-messaging client + handlers
@@ -80,8 +83,10 @@ If you add a new op:
 1. Handle it in `background.js`'s `handleMessage`.
 2. Add a `MapGet` route in `Program.cs` that builds the request JsonObject and
    calls `broker.RequestAsync`.
-3. Document the route in `README.md` *and* in the `cookies` skill (both
-   `~/.copilot/skills/cookies/SKILL.md` and the chezmoi source).
+3. Document the route in `README.md` and in the branch's `cookies` skill at
+   `.github/skills/cookies/SKILL.md`. On this machine, apply the compatible
+   documentation change to `~/.copilot/skills/cookies/SKILL.md` and the
+   chezmoi source.
 
 ## Public-facing docs
 
@@ -91,19 +96,22 @@ These files are seen by other people / public dotfiles. Use `example.com` only
 - `README.md`
 - `install.ps1` (the printed "Quick test" snippet)
 - `extension/popup.js` (the copy-curl button)
+- `.github/skills/cookies/SKILL.md`
 - `~/.copilot/skills/cookies/SKILL.md` AND
   `~/.local/share/chezmoi/dot_copilot/skills/cookies/SKILL.md`
 
-The user's private context files (e.g. `sandbox-context\seedbox-management\context.md`)
-may legitimately reference real sites; do not edit those for this reason.
-
 ## Skill workflow (per user-level instructions)
 
-When changing the `cookies` skill, **always** update both copies:
+The checked-in `.github/skills/cookies/SKILL.md` is the public skill for the
+API implemented by the current branch. When changing it on this machine,
+**always** update all three locations:
 
-1. Edit `~/.copilot/skills/cookies/SKILL.md` (live).
-2. Mirror to `~/.local/share/chezmoi/dot_copilot/skills/cookies/SKILL.md`.
-3. In the chezmoi repo: `git add` the file, **then** `git stash -u --keep-index`
+1. Edit `.github/skills/cookies/SKILL.md`.
+2. Apply the compatible change to `~/.copilot/skills/cookies/SKILL.md`
+   (live), preserving any routes implemented by other active branches.
+3. Mirror the live skill to
+   `~/.local/share/chezmoi/dot_copilot/skills/cookies/SKILL.md`.
+4. In the chezmoi repo: `git add` the file, **then** `git stash -u --keep-index`
    to set aside unrelated dirty files, commit, push, `git stash pop`. The
    chezmoi working tree often has unrelated edits -- never touch them.
 

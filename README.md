@@ -52,6 +52,21 @@ Requirements: Windows, Edge, .NET 10 SDK.
 
 For Chrome instead of Edge, pass `-Browser chrome`.
 
+### GitHub Copilot CLI skill
+
+The repository includes a `cookies` skill at
+`.github\skills\cookies\SKILL.md`. Copilot CLI loads it automatically while
+working in this repository. To make the skill available in every repository,
+copy it to your user-level skills directory:
+
+```powershell
+$skillDir = Join-Path $HOME '.copilot\skills\cookies'
+New-Item -ItemType Directory -Force $skillDir | Out-Null
+Copy-Item '.github\skills\cookies\SKILL.md' $skillDir
+```
+
+Start a new Copilot CLI session after installing the skill.
+
 ## Use
 
 ```powershell
@@ -127,6 +142,8 @@ Then remove the CookieJar extension from `edge://extensions/`.
 
 ```
 CookieJar\
+├── .github\
+│   └── skills\cookies\        -- Copilot CLI skill
 ├── extension\               -- Edge MV3 extension (background.js, popup, manifest)
 ├── server\
 │   └── CookieJar.Host\      -- .NET 10 host: stdio bridge + minimal API
