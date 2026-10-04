@@ -78,6 +78,40 @@ try {
     $got | Format-List
     if ($got.header -ne 'sid=abc; cid=xyz') { throw "header mismatch: '$($got.header)'" }
 
+    Write-Host "=== /localstorage with auth (extension reply) ===" -ForegroundColor Cyan
+
+    $responder2 = Start-ThreadJob -ScriptBlock {
+        param($p)
+        $stream = $p.StandardOutput.BaseStream
+        $lenBuf = New-Object byte[] 4
+        $r = 0; while ($r -lt 4) { $n = $stream.Read($lenBuf, $r, 4 - $r); if ($n -le 0) { return }; $r += $n }
+        $len = [BitConverter]::ToUInt32($lenBuf, 0)
+        $buf = New-Object byte[] $len
+        $r = 0; while ($r -lt $len) { $n = $stream.Read($buf, $r, $len - $r); if ($n -le 0) { return }; $r += $n }
+        return ([System.Text.Encoding]::UTF8.GetString($buf) | ConvertFrom-Json).id
+    } -ArgumentList $proc
+
+    $req2 = Start-ThreadJob -ScriptBlock {
+        param($t)
+        Invoke-RestMethod -Headers @{Authorization = "Bearer " + $t} `
+            'http://127.0.0.1:47899/localstorage?domain=example.com'
+    } -ArgumentList $token
+
+    $id2 = Wait-Job $responder2 | Receive-Job
+    Write-Host "  extension saw request id=$id2"
+    Send-Frame @{
+        id   = $id2
+        ok   = $true
+        url  = 'https://example.com/home'
+        keys = @{ session_token = 'abc123' }
+    }
+
+    $got2 = Wait-Job $req2 | Receive-Job
+    $got2 | Format-List
+    if ($got2.keys.session_token -ne 'abc123') {
+        throw "localstorage value mismatch: '$($got2.keys.session_token)'"
+    }
+
     Write-Host "OK" -ForegroundColor Green
 }
 finally {

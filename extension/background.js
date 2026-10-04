@@ -40,6 +40,9 @@ async function handleMessage(msg) {
     } else if (op === "listDomains") {
       const domains = await listDomains();
       reply({ id, ok: true, domains });
+    } else if (op === "getLocalStorage") {
+      const data = await getLocalStorage(msg);
+      reply({ id, ok: true, ...data });
     } else {
       reply({ id, ok: false, error: "unknown_op" });
     }
@@ -77,6 +80,40 @@ async function listDomains() {
 
 function normalize(d) {
   return (d || "").replace(/^\./, "").toLowerCase();
+}
+
+// Some sites keep their session auth in localStorage rather than a
+// cookie, so there's nothing for chrome.cookies to see. Reading it requires
+// an already-open tab for that origin -- scripting.executeScript runs in the
+// page's own security context, where localStorage/sessionStorage are
+// ordinary (non-isolated) web APIs reachable from the default content-script
+// world.
+async function getLocalStorage({ domain, key, area }) {
+  const areaName = area === "session" ? "sessionStorage" : "localStorage";
+  const tabs = await chrome.tabs.query({ url: `*://*.${domain}/*` });
+  if (!tabs.length) {
+    throw new Error("no_tab_open");
+  }
+  const tab = tabs.find((t) => t.active) ?? tabs[0];
+
+  const [{ result } = {}] = await chrome.scripting.executeScript({
+    target: { tabId: tab.id },
+    func: (name) => {
+      const store = window[name];
+      const out = {};
+      for (let i = 0; i < store.length; i++) {
+        const k = store.key(i);
+        out[k] = store.getItem(k);
+      }
+      return out;
+    },
+    args: [areaName],
+  });
+
+  if (key) {
+    return { url: tab.url, value: result?.[key] ?? null };
+  }
+  return { url: tab.url, keys: result ?? {} };
 }
 
 function serializeCookie(c) {

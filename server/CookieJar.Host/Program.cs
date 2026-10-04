@@ -124,6 +124,68 @@ app.MapGet("/cookies", async (string domain, string? name, bool? includeSubdomai
     });
 });
 
+app.MapGet("/localstorage", async (string domain, string? key, string? area, CookieBroker br) =>
+{
+    if (string.IsNullOrWhiteSpace(domain))
+    {
+        return Results.BadRequest(new { error = "domain_required" });
+    }
+
+    var request = new JsonObject
+    {
+        ["op"] = "getLocalStorage",
+        ["domain"] = domain,
+        ["area"] = area ?? "local",
+    };
+    if (!string.IsNullOrEmpty(key))
+    {
+        request["key"] = key;
+    }
+
+    JsonObject? response;
+    try
+    {
+        response = await br.RequestAsync(request, TimeSpan.FromSeconds(5), CancellationToken.None);
+    }
+    catch (TimeoutException)
+    {
+        return Results.Json(new { error = "extension_timeout" }, statusCode: 504);
+    }
+    catch (InvalidOperationException ex)
+    {
+        return Results.Json(new { error = "extension_disconnected", detail = ex.Message }, statusCode: 503);
+    }
+
+    if (response is null)
+    {
+        return Results.Json(new { error = "extension_disconnected" }, statusCode: 503);
+    }
+
+    if (response["ok"]?.GetValue<bool>() != true)
+    {
+        var err = response["error"]?.GetValue<string>() ?? "extension_error";
+        if (err == "no_tab_open")
+        {
+            return Results.Json(new
+            {
+                error = "no_tab_open",
+                domain,
+                detail = "No open tab matches this domain. Open the site in Edge and retry.",
+            }, statusCode: 404);
+        }
+        return Results.Json(new { error = err }, statusCode: 502);
+    }
+
+    return Results.Json(new
+    {
+        domain,
+        url = response["url"]?.GetValue<string>(),
+        fetchedAt = DateTimeOffset.UtcNow,
+        value = response["value"],
+        keys = response["keys"],
+    });
+});
+
 app.MapGet("/domains", async (CookieBroker br) =>
 {
     JsonObject? response;

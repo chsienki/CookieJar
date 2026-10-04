@@ -88,6 +88,7 @@ curl -sH "Authorization: Bearer $TOKEN" \
 | GET    | `/health`                                                       | no   |
 | GET    | `/cookies?domain=<d>[&name=<n>][&includeSubdomains=true\|false]`| yes  |
 | GET    | `/domains`                                                      | yes  |
+| GET    | `/localstorage?domain=<d>[&key=<k>][&area=local\|session]`      | yes  |
 
 `/cookies` returns both a ready-to-use `Cookie` header string and structured
 cookie objects:
@@ -108,6 +109,26 @@ cookie objects:
 
 Status codes: `401` bad/missing token, `404` no cookies for that domain,
 `503` extension not connected (open Edge), `504` extension timed out.
+
+`/localstorage` is for sites that keep their session token in `localStorage`
+instead of a cookie. It can't use
+`chrome.cookies` -- there's no browser API to read another origin's storage
+without a live tab -- so it requires **the target site already open in an
+Edge tab**:
+
+```json
+{
+  "domain": "example.com",
+  "url": "https://example.com/home",
+  "fetchedAt": "2026-04-18T10:00:00Z",
+  "keys": { "session_token": "..." }
+}
+```
+
+Pass `&key=<k>` to get a single value back as `{"value": "..."}` instead of
+the full key map. Pass `&area=session` to read `sessionStorage` instead of
+the default `localStorage`. Status codes: as above, plus `404 no_tab_open`
+if no open tab matches `domain` (open the site and retry).
 
 ## Security model
 
@@ -168,6 +189,13 @@ CookieJar\
 - **Multiple browser profiles** -- the cookies returned are from the profile
   that loaded the extension. Install separately in each profile if you need
   both.
+- **`404 no_tab_open` from `/localstorage`** -- the extension can only read
+  storage from a tab that's already open for that domain (there's no browser
+  API to read another origin's storage without one). Open the site in Edge
+  and retry.
+- **Upgraded CookieJar and `/localstorage` 502s** -- the extension gained the
+  `scripting`/`tabs` permissions in 0.2.0. Reload it once from
+  `edge://extensions/` so Edge re-evaluates the manifest and grants them.
 
 ## Out of scope (for now)
 
